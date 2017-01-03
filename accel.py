@@ -36,9 +36,9 @@ RANGE_4_G 			= 0b01    # +/- 4g
 RANGE_2_G 			= 0b00    # +/- 2g (default value)
 
 RANGE_DIVIDER 			= {
-    		RANGE_2_G: 4096 / EARTH_GRAVITY_MS2,
-    		RANGE_4_G: 2048 / EARTH_GRAVITY_MS2,
-    		RANGE_8_G: 1024 / EARTH_GRAVITY_MS2,
+    RANGE_2_G: 4096 / EARTH_GRAVITY_MS2,
+    RANGE_4_G: 2048 / EARTH_GRAVITY_MS2,
+    RANGE_8_G: 1024 / EARTH_GRAVITY_MS2,
 }
 
 # Some static values
