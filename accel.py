@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding:utf-8 -*-
+# -*- coding:utf-8, tabstop=4 -*-
 #
 # Copyright (c) 2016 Massimo Di Primio Independent ICT Consultant
 # Author: Massimo Di Primio massimo.diprimio@gmail.com
@@ -10,6 +10,8 @@
 # Date			Author					Version		Details
 # ----------------------------------------------------------------------------------
 # 2016-12-31	Massimo Di Primio		V.0.04		Fixed some basic functionality
+#
+# 2017-01-03	Massimo Di Primio		0.05		Added Interrut handler
 #
 import smbus
 import time
