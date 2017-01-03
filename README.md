@@ -5,6 +5,7 @@ This is a very basic python library for mma8451 accelerometer.
 The library was tested on Raspberry pi 2A and 3B connected to the Freescale MMA8451 3-axis accelerometer sensor, purchased from Adafruit.
 
 Dependencies and related readings: 
+
 1. https://learn.adafruit.com/adafruit-16-channel-servo-driver-with-raspberry-pi/configuring-your-pi-for-i2c
 A brief guide on How to Configure Your Pi for I2C
   
