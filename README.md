@@ -101,6 +101,7 @@ The above can be achieved by manually setting the requirements via shell command
     ```sudo chmod 666 /sys/module/i2c_bcm2708/parameters/combined```
     ```sudo echo -n 1 > /sys/module/i2c_bcm2708/parameters/combined```
 Or by adding the following chunk of code to the file ```/etc/rc.local```
+
     ```
     if [ -e /sys/module/i2c_bcm2708/parameters/combined ]; then
         chmod 666 /sys/module/i2c_bcm2708/parameters/combined >> /dev/null
@@ -108,6 +109,7 @@ Or by adding the following chunk of code to the file ```/etc/rc.local```
     fi
     ```
 so that the setting will be applied automatically, every your RPi is rebooted.
+
 ## MAA8451 Software installation
 The installation of the MMA8451 Experimental software is quite easy:
 * Download the software from gitub at https://github.com/massixone/mma8451
