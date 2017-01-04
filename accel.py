@@ -25,6 +25,7 @@ import datetime
 import os
 import sys
 import RPi.GPIO as GPIO
+from collections import deque
 
 __author__ = "Massimo Di Primio"
 __copyright__ = "Copyright 2016, dpmiictc"
@@ -284,16 +285,46 @@ FLAG_TRANSIENT_SCR_YTR_POL = 0x04  # Polarity of Y Transient Event that triggere
 FLAG_TRANSIENT_SCR_XTRANSE = 0x02  # X transient event (0: no interrupt, 1: X Transient acceleration > than TRANSIENT_THS event has occurred
 FLAG_TRANSIENT_SCR_XTR_POL = 0x01  # Polarity of X Transient Event that triggered interrupt (0: X event Positive g, 1: X event Negative g)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Define SOME GLOBAL VARIABLES
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Define the acceleration FIFO buffer
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# The acceleration FIFO buffer is a list of records containing all meaningful acceleration data plus some
+# other useful information, whose format il as described below
+#
+#   1.  curTime     as returned by: datetime.datetime.now().  Format is: 'YYYY-MM-DD hh:mi:ss.uuuuuuu'
+#   2.  xAccel      Current X acceleration value in row format
+#   3.  yAccel      Current Y acceleration value in row format
+#   4.  xAccel      Current Z acceleration value in row format
+#   5.  plo         Current Portrait/Landscape orientation
+accelBuffer = [0, 0, 0, 0, 0]
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Define the threaded interrupt vector
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Define the threaded callback functions for interrupt events.
-# These will run in another thread when our events are detected
 def my_callback(channel):
+    """
+    my_callback is the threaded callback functions for interrupt events.
+    These will run in another thread when our events are detected
+
+    :param channel: The GPIO channel where the interrupt event was risen
+    :return: None
+    """
+    # Please  nte that, for performance reasons, axis data are not convertd in m/s2,
+    # Although, all 6 registers containing acceleration data are read and formatted appropriately
     bus = smbus.SMBus(1)
-    bus.read_i2c_block_data(i2caddr, REG_OUT_X_MSB, 6)
-    print("Falling edge detected on GPIO channel: " + str(channel))
+    axisData = bus.read_i2c_block_data(i2caddr, REG_OUT_X_MSB, 6)
+    print ("!"),  #print("Falling edge detected on GPIO channel: " + str(channel))
+    xAccel = ((axisData[0] << 8) | axisData[1]) >> 2
+    yAccel = ((axisData[2] << 8) | axisData[3]) >> 2
+    zAccel = ((axisData[4] << 8) | axisData[5]) >> 2
+    plo = bus.read_byte_data(i2caddr, REG_PL_STATUS) & 0x7
+    # Append data to the accelBuffer
+    accelBuffer.append([str(datetime.datetime.now()), xAccel, yAccel, zAccel, plo])
     pass
 
 
@@ -301,18 +332,18 @@ def my_callback(channel):
 # Define a class called Accel
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class Accel():
-    myBus = ""
-    if GPIO.RPI_INFO['P1_REVISION'] == 1:
-        myBus = 0
-    else:
-        myBus = 1
-    print('myBus=' + str(myBus))
-    b = smbus.SMBus(myBus)  # 0 = /dev/i2c-0 (port I2C0), 1 = /dev/i2c-1 (port I2C1)
-    a = i2caddr
-
     def __init__(self):
+        myBus = ""
+        if GPIO.RPI_INFO['P1_REVISION'] == 1:
+            myBus = 0
+        else:
+            myBus = 1
+        print('myBus=' + str(myBus))
+        self.b = smbus.SMBus(myBus)  # 0 = /dev/i2c-0 (port I2C0), 1 = /dev/i2c-1 (port I2C1)
+        self.a = i2caddr
         self.high_res_mode = OVERSAMPLING_MODE
         self.sensor_range = RANGE_4_G
+
 
     def whoAmI(self):
         return self.b.read_byte_data(i2caddr, REG_WHOAMI)
@@ -328,7 +359,7 @@ class Accel():
         # BCM2708_COMBINED_PARAM_PATH = '/sys/module/i2c_bcm2708/parameters/combined'
         # os.chmod(BCM2708_COMBINED_PARAM_PATH, 666)
         # os.system('echo -n 1 > {!s}'.format(BCM2708_COMBINED_PARAM_PATH))
-        # i2cget -y 1 0x1d 0x0d		# This should return 0x1a for MMA8451
+        # i2cget -y 1 0x1d 0x0d		# This bash command should return 0x1a for MMA8451
         #
         # Setup all registers appropriately
         self.writeRegister(REG_CTRL_REG2, self.readRegister(REG_CTRL_REG2) | FLAG_RESET)  # Reset
@@ -360,6 +391,10 @@ class Accel():
             self.writeRegister(REG_CTRL_REG4, self.readRegister(REG_CTRL_REG4) | FLAG_INT_EN_DRDY)  # Data Ready Interrupt Enabled
             self.writeRegister(REG_CTRL_REG5, 0x00)  # Reset all interrupt config flags
             self.writeRegister(REG_CTRL_REG5, self.readRegister(REG_CTRL_REG5) | FLAG_INT_CFG_DRDY)  # Data Ready Interrupt Interrupt is routed to INT1 pin
+
+            # Initialize the accelBuffer
+            accelBuffer = deque()
+
 
         # Finally, Activate the sensor
         self.writeRegister(REG_CTRL_REG1, self.readRegister(REG_CTRL_REG1) | FLAG_ACTIVE)  # Activate the device
@@ -398,17 +433,17 @@ class Accel():
 
     def get_orientation(self):
         """
-		Get current orientation of the sensor.
-		:return: orientation. Orientation number for the sensor.
-		"""
+        Get current orientation of the sensor.
+        :return: orientation. Orientation number for the sensor.
+        """
         orientation = self.b.read_byte_data(self.a, REG_PL_STATUS) & 0x7
         return orientation
 
     def getAxisValue(self):
         """
-		Retrieves axis values and converts into a readable format (i.e. m/s2)
-		:return:	None
-		"""
+        Retrieves axis values and converts into a readable format (i.e. m/s2)
+        :return:	None
+        """
         # Make sure F_READ and F_MODE are disabled.
         f_read = self.b.read_byte_data(self.a, REG_CTRL_REG1) & FLAG_F_READ
         assert f_read == 0, 'F_READ mode is not disabled. : %s' % (f_read)
@@ -426,10 +461,9 @@ class Accel():
             x = (self.xyzdata[0] << 8)
             y = (self.xyzdata[1] << 8)
             z = (self.xyzdata[2] << 8)
-            precision = PRECISION_08_BIT  # Precision 8 bit data
+            precision = PRECISION_08_BIT  # Precision 08 bit data
         max_val = 2 ** (precision - 1) - 1
         signed_max = 2 ** precision
-        # logger.debug('read bytes for axes %s', str(read_bytes))
         #
         x -= signed_max if x > max_val else 0
         y -= signed_max if y > max_val else 0
@@ -473,13 +507,18 @@ if __name__ == "__main__":
         print("Error! Device not recognized! (" + str(deviceName) + ")")
         sys.exit()
 
-    while True:  # for a in range(10000):
+    while True:  # forever loop
         print("\n" + str(datetime.datetime.now()))
         MMA8451.debugShowRpiInfo()
         MMA8451.debugShowRegisters()
         MMA8451.debugShowOrientation()
         axes = MMA8451.getAxisValue()
-        MMA8451.debugShowAxisAcceleration(axes['x'], axes['x'], axes['z'])
+        MMA8451.debugShowAxisAcceleration(axes['x'], axes['y'], axes['z'])
+        n = 0
+        for elements in accelBuffer:
+            myData = accelBuffer.pop()
+            n += 1
+            print ("N=" + str(n) + " myData=" + str(myData))    # + "Element=" + str(elements))
         try:
             print("End of printout\n")
             time.sleep(1.0)
@@ -487,5 +526,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("Program Termination Requested")
             sys.exit()
-
     sys.exit()
