@@ -20,25 +20,25 @@ This section explains how to setup the whole things to test your MMA8451 device 
 
 ## Basic environment Preparation
 * Grab the following material:
-** 1 Raspberry Pi (which could be any model)
-** 1 Power supply for Raspberry Pi
-** 1 SD card or MicroSD card (depending on your RPi model) preferably a class 10
-** 1 HDMI monitor
-** 1 USB Mouse
-** 1 USB Keyboard
-** 1 MMA85451 3-axis accelerometer sensor
+    1. One Raspberry Pi (which could be any model)
+    2. One Power supply for Raspberry Pi
+    3. One SD card or MicroSD card (depending on your RPi model) preferably a class 10
+    4. One HDMI monitor
+    5. One USB Mouse
+    6. One USB Keyboard
+    7. One MMA85451 3-axis accelerometer sensor
 
 Also have available...
-** A good internet connection (to access the internet)
-** A LAN switch (to connect you RPi to the internet)
-** Another PC (either Windows, Linux or Mac will be OK)
-** Enough patience :)
+    8. A good internet connection (to access the internet)
+    9. A LAN switch (to connect you RPi to the internet) and a RJ45 UTP/STP LAN straight Cable (patch cord)
+    10. Another PC (either Windows, Linux or Mac will be OK)
+    11. Enough patience :)
 
 ## Raspberry Pi preparation and setup
 * From you PC, download a Raspbian GNU/Linux 8 (jessie) for your RPi. See download page at: https://www.raspberrypi.org/downloads/
 * Transfer/Copy the Operating System (Raspbian GNU/Linux 8 - jessie) into the SD/MicroSD Card. (see instruction at: https://www.raspberrypi.org/documentation/installation/installing-images/)
-** Instruction on how to install RPi OS from Windows(R) can be found at: https://www.raspberrypi.org/documentation/installation/installing-images/windows.md
-** Instruction on how to install RPi OS from Linux can be found at: https://www.raspberrypi.org/documentation/installation/installing-images/linux.md
+    1. Instruction on how to install RPi OS from Windows(R) can be found at: https://www.raspberrypi.org/documentation/installation/installing-images/windows.md
+    2. Instruction on how to install RPi OS from Linux can be found at: https://www.raspberrypi.org/documentation/installation/installing-images/linux.md
 
 Once you have transferred/copied the Raspblian into the SD/MicroSD
 * Safely dismount the SD/MicroSD Card from your PC
@@ -46,6 +46,7 @@ Once you have transferred/copied the Raspblian into the SD/MicroSD
 * Connect the HDMI cable of your monitor to rhe HDMI connetor of your RPi
 * Connect the USB keyboard to one of the USB connectors available on your RPi
 * Connect the USB mouse to ne of the USB connectors available on your RPi
+* Connect your RPi to you LAN switch using the LAN Cable (patch cord)
 * Power up your RPi by connecting the microUSB connector of the Power Supply to your RPi
 * You can watch the startup process of your RPi on the screen.
 
@@ -53,31 +54,38 @@ When the startup procedure is completed you can begin configure you RPi as descr
 
 * On our RPi screen, open a terminal window
 * Run the Raspberry Pi configuration tool ```raspi-config``` to apply some basic RPi configuration, at least those mentioned below are recommended (for more information, please consult: https://www.raspberrypi.org/documentation/configuration/raspi-config.md)
-** Expand Filesystem : to Ensures that all of the SD card storage is available to the OS
-** Change User Password : to change password for the default user (pi)
-** Advanced Options => A6 I2C : to enable/Disable automatic loading of I2C kernel module
+
+    1. Expand Filesystem : to Ensures that all of the SD card storage is available to the OS
+    2. Change User Password : to change password for the default user (pi)
+    3. Advanced Options => A6 I2C : to enable automatic loading of I2C kernel module
+    4. Advanced Options => A4 SSH : to enable remote command line access to your Pi using SSH
     '''
-    # sudo raspi-config    # Run raspi-config
-    # sudo reboot          # after raspi-config terminates, reboot your RPi to allow changes to take effect
+    sudo raspi-config    # Run raspi-config
+    sudo reboot          # after raspi-config terminates, reboot your RPi to allow changes to take effect
     '''
 
 * Run ```rpi-update``` to update your RPi firmware and reboot to allow all changes to take effect.
     ```
-    # sudo rpi-update
-    # sudo reboot
+    sudo rpi-update
+    sudo reboot
     ```
 
 * Update all packages and eventually newer kernel version (more info at: https://www.raspberrypi.org/documentation/raspbian/updating.md)
     ```
-    # sudo apt-get update
-    # sudo apt-get upgrade
+    sudo apt-get update
+    sudo apt-get upgrade
     ```
+    Please note that the above command takes some time to complete, since it access the internet to download and install ann the needed software.
 
 * Install the following packages via shell command and reboot you RPi
     ```
-    # sudo apt-get install python-smbus
-    # sudo apt-get install i2c-tools
-    # sudo reboot
+    sudo apt-get install python-smbus
+    sudo apt-get install i2c-tools
+    sudo reboot
     ```
 
-* Update your RPi firmware (more information can be found at:
+* Update your RPi firmware (useful information can be found at: https://www.raspberrypi.org/forums/viewtopic.php?t=58963)
+    ```
+    sudo rpi-update 
+    ```
+    Please note that the above command takes some time to complete, since it access the internet to download and install ann the needed software.
