@@ -1,4 +1,4 @@
-# mma8451
+# mma8451 - Accel experimental software
 Simple code example for Adafruit MMA8452 3-axis Accelerometer.
 
 This is a very basic python library for mma8451 accelerometer. 
@@ -28,11 +28,11 @@ This section explains how to setup the whole things to test your MMA8451 device 
     6. One USB Keyboard
     7. One MMA85451 3-axis accelerometer sensor
 
-Also have available...
+* Also have available...
     8. A good internet connection (to access the internet)
     9. A LAN switch (to connect you RPi to the internet) and a RJ45 UTP/STP LAN straight Cable (patch cord)
     10. Another PC (either Windows, Linux or Mac will be OK)
-    11. Enough patience :)
+    11. Enough patience and Spirit of Adventure :)
 
 ## Raspberry Pi preparation and setup
 * From you PC, download a Raspbian GNU/Linux 8 (jessie) for your RPi. See download page at: https://www.raspberrypi.org/downloads/
@@ -108,3 +108,15 @@ Or by adding the following chunk of code to the file ```/etc/rc.local```
     fi
     ```
 so that the setting will be applied automatically, every your RPi is rebooted.
+## MAA8451 Software installation
+The installation of the MMA8451 Experimental software is quite easy:
+* Download the software from gitub at git clone https://github.com/massixone/mma8451
+    ```
+    git clone https://github.com/massixone/mma8451
+    cd mma8451
+    ```
+* Run the software
+    ```
+    ./accel.py
+    ```
+# Finally, Have Fun!
