@@ -98,8 +98,11 @@ In order to do that, please follow these instructions.
 * The file ```/sys/module/i2c_bcm2708/parameters/combined``` must be Read/Write for all users
 * The file ```/sys/module/i2c_bcm2708/parameters/combined``` must contain ```Y```
 The above can be achieved by manually setting the requirements via shell command, as follows:
+
     ```sudo chmod 666 /sys/module/i2c_bcm2708/parameters/combined```
+    
     ```sudo echo -n 1 > /sys/module/i2c_bcm2708/parameters/combined```
+    
 Or by adding the following chunk of code to the file ```/etc/rc.local```
 
     ```
@@ -113,11 +116,14 @@ so that the setting will be applied automatically, every your RPi is rebooted.
 ## MAA8451 Software installation
 The installation of the MMA8451 Experimental software is quite easy:
 * Download the software from gitub at https://github.com/massixone/mma8451
+
     ```
     git clone https://github.com/massixone/mma8451
     cd mma8451
     ```
+    
 * Run the software
+
     ```
     ./accel.py
     ```
