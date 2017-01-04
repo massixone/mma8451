@@ -15,7 +15,7 @@ The MMA8451 Data sheet: Technical data
 3. http://www.nxp.com/files/sensors/doc/app_note/AN4076.pdf
 Data Manipulation and Basic Settings of the MMA8451, 2, 3Q
 
-# Startup
+# Initial Preparation
 This section explains how to setup the whole things to test your MMA8451 device on a Raspberry Pi
 
 ## Basic environment Preparation
@@ -89,3 +89,22 @@ When the startup procedure is completed you can begin configure you RPi as descr
     sudo rpi-update 
     ```
     Please note that the above command takes some time to complete, since it access the internet to download and install ann the needed software.
+# Software installation
+This section will guide you to install the software and run it
+## Preliminary set up
+In order to allow the MMA8451 software to run as a regular user, for example user ```pi``` (or any other user you might prefer), it is important that the software can access some of the system device file appropriately.
+
+In order to do that, please follow these instructions.
+* The file ```/sys/module/i2c_bcm2708/parameters/combined``` must be Read/Write for all users
+* The file ```/sys/module/i2c_bcm2708/parameters/combined``` must contain ```Y```
+The above can be achieved by manually setting the requirements via shell command, as follows:
+    ```sudo chmod 666 /sys/module/i2c_bcm2708/parameters/combined```
+    ```sudo echo -n 1 > /sys/module/i2c_bcm2708/parameters/combined```
+Or by adding the following chunk of code to the file ```/etc/rc.local```
+    ```
+    if [ -e /sys/module/i2c_bcm2708/parameters/combined ]; then
+        chmod 666 /sys/module/i2c_bcm2708/parameters/combined >> /dev/null
+        echo -n 1 > /sys/module/i2c_bcm2708/parameters/combined
+    fi
+    ```
+so that the setting will be applied automatically, every your RPi is rebooted.
