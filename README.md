@@ -5,7 +5,6 @@ This is a very basic python library for mma8451 accelerometer.
 The library was tested on Raspberry pi model 2A and model 3 connected to the Freescale(c) MMA8451 3-axis accelerometer sensor, purchased from Adafruit(c). This is the Adafruit page regarding our device> https://www.adafruit.com/?q=mma8451&
 
 ## Dependencies and related readings:
-
 1. https://learn.adafruit.com/adafruit-16-channel-servo-driver-with-raspberry-pi/configuring-your-pi-for-i2c
 A brief guide on How to Configure Your Pi for I2C
   
@@ -89,19 +88,22 @@ When the startup procedure is completed you can begin configure you RPi as descr
     sudo rpi-update 
     ```
     Please note that the above command takes some time to complete, since it access the internet to download and install ann the needed software.
+    
 # Software installation
 This section will guide you to install the software and run it
+
 ## Preliminary set up
 In order to allow the MMA8451 software to run as a regular user, for example user ```pi``` (or any other user you might prefer), it is important that the software can access some of the system device file appropriately.
 
 In order to do that, please follow these instructions.
 * The file ```/sys/module/i2c_bcm2708/parameters/combined``` must be Read/Write for all users
-* The file ```/sys/module/i2c_bcm2708/parameters/combined``` must contain ```Y```
+* The file ```/sys/module/i2c_bcm2708/parameters/combined``` must contain ```Y``` (upper-case 'Y')
 The above can be achieved by manually setting the requirements via shell command, as follows:
 
-    ```sudo chmod 666 /sys/module/i2c_bcm2708/parameters/combined```
-    
-    ```sudo echo -n 1 > /sys/module/i2c_bcm2708/parameters/combined```
+    ```
+    sudo chmod 666 /sys/module/i2c_bcm2708/parameters/combined
+    sudo echo -n 1 > /sys/module/i2c_bcm2708/parameters/combined
+    ```
     
 Or by adding the following chunk of code to the file ```/etc/rc.local```
 
@@ -111,7 +113,7 @@ Or by adding the following chunk of code to the file ```/etc/rc.local```
         echo -n 1 > /sys/module/i2c_bcm2708/parameters/combined
     fi
     ```
-so that the setting will be applied automatically, every your RPi is rebooted.
+So that the setting will be applied automatically, every your RPi is rebooted.
 
 ## MAA8451 Software installation
 The installation of the MMA8451 Experimental software is quite easy:
