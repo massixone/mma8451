@@ -110,7 +110,7 @@ Or by adding the following chunk of code to the file ```/etc/rc.local```
 so that the setting will be applied automatically, every your RPi is rebooted.
 ## MAA8451 Software installation
 The installation of the MMA8451 Experimental software is quite easy:
-* Download the software from gitub at git clone https://github.com/massixone/mma8451
+* Download the software from gitub at https://github.com/massixone/mma8451
     ```
     git clone https://github.com/massixone/mma8451
     cd mma8451
@@ -119,4 +119,5 @@ The installation of the MMA8451 Experimental software is quite easy:
     ```
     ./accel.py
     ```
+    
 # Finally, Have Fun!
