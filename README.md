@@ -79,7 +79,6 @@ When the startup procedure is completed you can begin configure you RPi as descr
 * Install the following packages via shell command and reboot you RPi
     ```
     sudo apt-get install build-essential python-dev python-smbus python-pip git
-    sudo apt-get install python-smbus
     sudo apt-get install i2c-tools
     sudo reboot
     ```
