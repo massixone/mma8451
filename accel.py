@@ -587,7 +587,11 @@ if __name__ == "__main__":
                 MMA8451.debugRealTimeBuffer()
 
         runTimeConfigObject.NumInterrupts = 0
-        time.sleep(1.0)
+        try:
+            time.sleep(1.0)
+        except KeyboardInterrupt:
+            print("\nUser termination requested!\n")
+            sys.exit()
 
     sys.exit()
 
