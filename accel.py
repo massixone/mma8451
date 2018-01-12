@@ -336,17 +336,24 @@ def my_callback(channel):
 # Define a class called Accel
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class Accel():
+    raspiBus = -1               # The Raspberry Pi Bus (dpends on hardware model)
+    raspiIntEnabled = 0         # 0 = Interrupt routine was not enabled after initialization, 1 = Interrupt routine enabled successfully
+    raspiInfo = ""              # Raspberry Pi Info
+
     def __init__(self):
         myBus = ""
         if GPIO.RPI_INFO['P1_REVISION'] == 1:
             myBus = 0
         else:
             myBus = 1
-        print('myBus=' + str(myBus))
+        #print('myBus=' + str(myBus))
+        self.raspiBus = myBus
+
         self.b = smbus.SMBus(myBus)  # 0 = /dev/i2c-0 (port I2C0), 1 = /dev/i2c-1 (port I2C1)
         self.a = i2caddr
         self.high_res_mode = OVERSAMPLING_MODE
         self.sensor_range = RANGE_4_G
+        self.raspiInfo = GPIO.RPI_INFO
 
 
     def whoAmI(self):
@@ -389,13 +396,14 @@ class Accel():
             # else is happening in the program, the function my_callback will be run
             # GPIO.add_event_detect(17, GPIO.FALLING, callback=my_callback, bouncetime=300)
             GPIO.add_event_detect(17, GPIO.FALLING, callback=my_callback)
-            print("Interrupt OK")
+            #print("Interrupt OK")
+            self.raspiIntEnabled = 1    # Interrupt enabled successfully
 
             # Configure register for interrupt
             self.writeRegister(REG_CTRL_REG4, 0x00)  # Reset all interrupt enabled flags
             self.writeRegister(REG_CTRL_REG4, self.readRegister(REG_CTRL_REG4) | FLAG_INT_EN_DRDY)  # Data Ready Interrupt Enabled
             self.writeRegister(REG_CTRL_REG5, 0x00)  # Reset all interrupt config flags
-            self.writeRegister(REG_CTRL_REG5, self.readRegister(REG_CTRL_REG5) | FLAG_INT_CFG_DRDY)  # Data Ready Interrupt Interrupt is routed to INT1 pin
+            self.writeRegister(REG_CTRL_REG5, self.readRegister(REG_CTRL_REG5) | FLAG_INT_CFG_DRDY)  # Data Ready Interrupt is routed to INT1 pin
 
             # Initialize the accelBuffer
             accelBuffer = deque()
@@ -481,7 +489,8 @@ class Accel():
         return {"x": x, "y": y, "z": z}
 
     def debugShowRpiInfo(self):
-        print(GPIO.RPI_INFO)
+        #print("Raspberry Info      = " + str(GPIO.RPI_INFO))
+        print("Raspberry Info      = " + str(self.raspiInfo))
 
     def debugShowRegisters(self):
         print("REG_STATUS       (0x00):" + str(format(self.readRegister(REG_STATUS), '#04x')) + " | Binary: " + format(self.readRegister(REG_STATUS), 'b').zfill(8))
@@ -527,16 +536,20 @@ def printHelp():
     print "Available options:"
     print " -h \t Print this help and exit"
     print " -d \t Show debug realtime interrupt data"
-    print " -s \t Execute silently (no sceen output)"
+    print " -s \t Execute silently (no screen output)"
     print ""
 
-import sys, getopt
 def main(argv):
+    import sys, getopt
     #
     try:
-        opts, args = getopt.getopt(argv,"hc:dsS",["conf_file="])
+        #opts, args = getopt.getopt(argv,"hc:dsS",["conf_file="])
+        opts, args = getopt.getopt(argv,"hds")
     except getopt.GetoptError:
-        print 'accel.py -c <config_file> [-d] [-s] -o -S'
+        #print 'accel.py -c <config_file> [-d] [-s] -o -S'
+        print "\nInvalid option requested on command line"
+        printHelp()
+        sys.exit(2)
 
     for opt, arg in opts:
         if opt == '-h':
@@ -546,10 +559,6 @@ def main(argv):
             runTimeConfigObject.debugRealTime = 1
         if opt == '-s':
             runTimeConfigObject.executeSilently = 1
-
-    #print 'runTimeConfigObject.debugRealTime = ' + str(runTimeConfigObject.debugRealTime)
-    #if 
-
 
 #####################################################################################
 #   M A I N 
@@ -566,7 +575,7 @@ if __name__ == "__main__":
     
     main(sys.argv[1:])
     MMA8451 = Accel()
-    os.system("clear")
+    #os.system("clear")
     MMA8451.init()
 
     if MMA8451.whoAmI() != deviceName:
@@ -574,9 +583,11 @@ if __name__ == "__main__":
         sys.exit()
 
     while True:  # forever loop
-        print("\nCurrent Date-Time: " + str(datetime.datetime.now()))
         #print "runTimeConfigObject.executeSilently = " + str(runTimeConfigObject.executeSilently)
         if runTimeConfigObject.executeSilently == 0:
+            print("\nCurrent Date-Time: " + str(datetime.datetime.now()))
+            print "Raspberry Bus       = " + str(MMA8451.raspiBus)
+            print "Raspberry Interrupt = " + str(MMA8451.raspiIntEnabled)
             MMA8451.debugShowRpiInfo()
             MMA8451.debugShowRegisters()
             MMA8451.debugShowOrientation()
