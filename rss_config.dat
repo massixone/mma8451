@@ -1,0 +1,9 @@
+[GeoInfo]
+CityName: Rome
+Latitude: 41.947550
+Longitude: 12.469794
+
+[DeviceInfo]
+DeviceType: raspberry
+DeviceName: rssd0001
+SensorName: mma8451
