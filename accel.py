@@ -26,6 +26,8 @@ import time
 import datetime
 import os
 import sys
+import logging
+import threading
 import RPi.GPIO as GPIO
 from collections import deque
 
@@ -342,29 +344,11 @@ class Accel():
     raspiBus = -1               # The Raspberry Pi Bus (dpends on hardware model)
     raspiIntEnabled = 0         # 0 = Interrupt routine was not enabled after initialization, 1 = Interrupt routine enabled successfully
     raspiInfo = ""              # Raspberry Pi Info
-    configSections = {}
-    sections = {'GeoInfo', 'DeviceInfo', 'Networking'}    
 
     def __init__(self):
-        #
-        # Read configuration file
-        #
-        Config = ConfigParser.ConfigParser()
-        Config.read("./rss_config.dat")
-        for section in self.sections:
-            try:
-                options = Config.options(section)
-            except:
-                print ("ERROR: Section '" + section + "' Not found in config file: './rss_config.dat")
-                sys.exit()
-            for option in options:
-                try:
-                    self.configSections[option] = Config.get("GeoInfo", option)             
-                except:
-                    self.configSections[option] = None
 
         #
-        # Setup RPI correct bus
+        # Setup RPI specific bus
         #
         myBus = ""
         if GPIO.RPI_INFO['P1_REVISION'] == 1:
@@ -554,6 +538,16 @@ class Accel():
             sys.exit()
         
 ###############################################################################
+#   Threading functions
+###############################################################################
+#def rssClient():
+#    """Manage data shipping over th network, in a separate thread."""
+#    #logging.debug('Thread Starting')
+#    while True:
+#        time.sleep(1.0)
+#        print ("This is thread rssClient()")
+#
+###############################################################################
 #   Useful functions
 ###############################################################################
 def printHelp():
@@ -592,12 +586,35 @@ if __name__ == "__main__":
     class runTimeConfigObject(object):
         pass
 
+    #
+    # Set some default command line options
     runTimeConfig = runTimeConfigObject()
     runTimeConfigObject.debugRealTime = 0       # 1 = Show debug realtime interrupt data
     runTimeConfigObject.executeSilently = 0     # 1 = Execute silently (no sceen output)
     runTimeConfigObject.NumInterrupts = 0       # keep Nbr of sensor interrupts withi the main loop
     
     main(sys.argv[1:])
+
+    #
+    # Read configuration file
+    #
+    configFile = "./rss_config.dat"
+    sections = {'GeoData', 'DeviceInfo', 'Networking'}
+    configSections = {}
+    Config = ConfigParser.ConfigParser()
+    Config.read(configFile)
+    for section in sections:
+        try:
+            options = Config.options(section)
+        except:
+            print ("ERROR: Section '" + section + "' Not found in config file: '" + configFile + "'.")
+            sys.exit()
+        for option in options:
+            try:
+                configSections[option] = Config.get(section, option)
+            except:
+                configSections[option] = None
+
     MMA8451 = Accel()
     #os.system("clear")
     MMA8451.init()
@@ -605,6 +622,17 @@ if __name__ == "__main__":
     if MMA8451.whoAmI() != deviceName:
         print("Error! Device not recognized! (" + str(deviceName) + ")")
         sys.exit()
+
+    #
+    # Thread client start
+    #
+    #import threading
+    import rss_client
+    #threadClient = threading.Thread(name='netClientWorker', target=rss_client.cliWorker)
+    pill2kill = threading.Event()
+    threadClient = threading.Thread(name='netClientWorker', target=rss_client.cliWorker, args=(pill2kill, accelBuffer))
+    threadClient.setDaemon(False)         #threadClient.daemon = False
+    threadClient.start()
 
     while True:  # forever loop
         #print "runTimeConfigObject.executeSilently = " + str(runTimeConfigObject.executeSilently)
@@ -626,6 +654,10 @@ if __name__ == "__main__":
         try:
             time.sleep(1.0)
         except KeyboardInterrupt:
+            print ("Killing threads...")
+            pill2kill.set()
+            threadClient.join()
+
             print("\nUser termination requested!\n")
             sys.exit()
 
