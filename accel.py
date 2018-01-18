@@ -318,7 +318,11 @@ def my_callback(channel):
     # Although, all 6 registers containing acceleration data are read and formatted appropriately
     bus = smbus.SMBus(1)
     axisData = bus.read_i2c_block_data(i2caddr, REG_OUT_X_MSB, 6)
-    print ("!"),  #print("Falling edge detected on GPIO channel: " + str(channel))
+    #
+    #print ("!"),  #print("Falling edge detected on GPIO channel: " + str(channel))
+    #
+    runTimeConfigObject.NumInterrupts = runTimeConfigObject.NumInterrupts + 1
+    #
     xAccel = ((axisData[0] << 8) | axisData[1]) >> 2
     yAccel = ((axisData[2] << 8) | axisData[3]) >> 2
     zAccel = ((axisData[4] << 8) | axisData[5]) >> 2
@@ -331,18 +335,53 @@ def my_callback(channel):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Define a class called Accel
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import ConfigParser
 class Accel():
+    raspiBus = -1               # The Raspberry Pi Bus (dpends on hardware model)
+    raspiIntEnabled = 0         # 0 = Interrupt routine was not enabled after initialization, 1 = Interrupt routine enabled successfully
+    raspiInfo = ""              # Raspberry Pi Info
+#    confCity = ""
+#    confLatitude = ""
+#    confLongitude = ""
+#    confDeviceName = ""
+#    confSensorName = ""
+    dict1 = {}
+    sections = {'GeoInfo', 'DeviceInfo'}    
+
     def __init__(self):
+        #
+        # Read configuration file
+        #
+        Config = ConfigParser.ConfigParser()
+        Config.read("./rss_config.dat")
+        for section in self.sections:
+            try:
+                options = Config.options(section)
+            except:
+                print ("ERROR: Section '" + section + "' Not found in config file: './rss_config.dat")
+                sys.exit()
+            for option in options:
+                try:
+                    self.dict1[option] = Config.get("GeoInfo", option)             
+                except:
+                    self.dict1[option] = None
+
+        #
+        # Setup RPI correct bus
+        #
         myBus = ""
         if GPIO.RPI_INFO['P1_REVISION'] == 1:
             myBus = 0
         else:
             myBus = 1
-        print('myBus=' + str(myBus))
+        #print('myBus=' + str(myBus))
+        self.raspiBus = myBus
+
         self.b = smbus.SMBus(myBus)  # 0 = /dev/i2c-0 (port I2C0), 1 = /dev/i2c-1 (port I2C1)
         self.a = i2caddr
         self.high_res_mode = OVERSAMPLING_MODE
         self.sensor_range = RANGE_4_G
+        self.raspiInfo = GPIO.RPI_INFO
 
 
     def whoAmI(self):
@@ -359,7 +398,8 @@ class Accel():
         # BCM2708_COMBINED_PARAM_PATH = '/sys/module/i2c_bcm2708/parameters/combined'
         # os.chmod(BCM2708_COMBINED_PARAM_PATH, 666)
         # os.system('echo -n 1 > {!s}'.format(BCM2708_COMBINED_PARAM_PATH))
-        # i2cget -y 1 0x1d 0x0d		# This bash command should return 0x1a for MMA8451
+        # sudo i2cdetect -y 1               # this sh cmmand will search /dev/i2c-1 for all address
+        # sudo i2cget -y 1 0x1d 0x0d		# This sh command should return 0x1a for MMA8451
         #
         # Setup all registers appropriately
         self.writeRegister(REG_CTRL_REG2, self.readRegister(REG_CTRL_REG2) | FLAG_RESET)  # Reset
@@ -384,13 +424,14 @@ class Accel():
             # else is happening in the program, the function my_callback will be run
             # GPIO.add_event_detect(17, GPIO.FALLING, callback=my_callback, bouncetime=300)
             GPIO.add_event_detect(17, GPIO.FALLING, callback=my_callback)
-            print("Interrupt OK")
+            #print("Interrupt OK")
+            self.raspiIntEnabled = 1    # Interrupt enabled successfully
 
             # Configure register for interrupt
             self.writeRegister(REG_CTRL_REG4, 0x00)  # Reset all interrupt enabled flags
             self.writeRegister(REG_CTRL_REG4, self.readRegister(REG_CTRL_REG4) | FLAG_INT_EN_DRDY)  # Data Ready Interrupt Enabled
             self.writeRegister(REG_CTRL_REG5, 0x00)  # Reset all interrupt config flags
-            self.writeRegister(REG_CTRL_REG5, self.readRegister(REG_CTRL_REG5) | FLAG_INT_CFG_DRDY)  # Data Ready Interrupt Interrupt is routed to INT1 pin
+            self.writeRegister(REG_CTRL_REG5, self.readRegister(REG_CTRL_REG5) | FLAG_INT_CFG_DRDY)  # Data Ready Interrupt is routed to INT1 pin
 
             # Initialize the accelBuffer
             accelBuffer = deque()
@@ -476,7 +517,8 @@ class Accel():
         return {"x": x, "y": y, "z": z}
 
     def debugShowRpiInfo(self):
-        print(GPIO.RPI_INFO)
+        #print("Raspberry Info      = " + str(GPIO.RPI_INFO))
+        print("Raspberry Info      = " + str(self.raspiInfo))
 
     def debugShowRegisters(self):
         print("REG_STATUS       (0x00):" + str(format(self.readRegister(REG_STATUS), '#04x')) + " | Binary: " + format(self.readRegister(REG_STATUS), 'b').zfill(8))
@@ -489,6 +531,8 @@ class Accel():
         print("REG_CTRL_REG4    (0x2d):" + str(format(self.readRegister(REG_CTRL_REG4), '#04x')) + " | Binary: " + format(self.readRegister(REG_CTRL_REG4), 'b').zfill(8))
         print("REG_CTRL_REG5    (0x2e):" + str(format(self.readRegister(REG_CTRL_REG5), '#04x')) + " | Binary: " + format(self.readRegister(REG_CTRL_REG5), 'b').zfill(8))
         print("REG_PL_STATUS    (0x10):" + str(format(self.readRegister(REG_PL_STATUS), '#04x')) + " | Binary: " + format(self.readRegister(REG_PL_STATUS), 'b').zfill(8))
+        print ("debugRealTime    " + str(runTimeConfigObject.debugRealTime))
+        print ("NumInterrupts    " + str(runTimeConfigObject.NumInterrupts))
 
     def debugShowOrientation(self):
         print("Position = %d" % (self.get_orientation()))
@@ -498,22 +542,7 @@ class Accel():
         print("   y (m/s2)= %+.3f" % (yaccel))
         print("   z (m/s2)= %+.3f" % (zaccel))
 
-
-if __name__ == "__main__":
-    MMA8451 = Accel()
-    MMA8451.init()
-
-    if MMA8451.whoAmI() != deviceName:
-        print("Error! Device not recognized! (" + str(deviceName) + ")")
-        sys.exit()
-
-    while True:  # forever loop
-        print("\n" + str(datetime.datetime.now()))
-        MMA8451.debugShowRpiInfo()
-        MMA8451.debugShowRegisters()
-        MMA8451.debugShowOrientation()
-        axes = MMA8451.getAxisValue()
-        MMA8451.debugShowAxisAcceleration(axes['x'], axes['y'], axes['z'])
+    def debugRealTimeBuffer(self):
         n = 0
         for elements in accelBuffer:
             myData = accelBuffer.pop()
@@ -521,9 +550,110 @@ if __name__ == "__main__":
             print ("N=" + str(n) + " myData=" + str(myData))    # + "Element=" + str(elements))
         try:
             print("End of printout\n")
-            time.sleep(1.0)
+            #time.sleep(1.0)
         # os.system("clear")
         except KeyboardInterrupt:
             print("Program Termination Requested")
             sys.exit()
+        
+#CONFIG_SECTION_GEOINFO = "GeoInfo"
+#CONFIG_SECTION_DEVICE_INFO = "DeviceInfo"
+#class configRSS
+#
+#    confCity = ""
+#    confLatitude = ""
+#    confLongitude = ""
+#    confDeviceName = ""
+#    confSensorName = ""
+#
+#
+#    def __init__(self):
+#        myBus = ""
+#        if GPIO.RPI_INFO['P1_REVISION'] == 1:
+#            myBus = 0
+#        else:
+#            myBus = 1
+#        #print('myBus=' + str(myBus))
+#        self.raspiBus = myBus
+#
+#    def loadConfig(section)
+#        dict1 = {}
+#        options = Config.options(section)
+#
+
+def printHelp():
+    print ("\n")
+    print ("usage: accel.py [options]")
+    print ("Available options:")
+    print (" -h \t Print this help and exit")
+    print (" -d \t Show debug realtime interrupt data")
+    print (" -s \t Execute silently (no screen output)")
+    print ("")
+
+def main(argv):
+    import sys, getopt
+    #
+    try:
+        #opts, args = getopt.getopt(argv,"hc:dsS",["conf_file="])
+        opts, args = getopt.getopt(argv,"hds")
+    except getopt.GetoptError:
+        print ("\nInvalid option requested on command line")
+        printHelp()
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt == '-h':
+            printHelp()
+            sys.exit()
+        if opt == '-d':
+            runTimeConfigObject.debugRealTime = 1
+        if opt == '-s':
+            runTimeConfigObject.executeSilently = 1
+
+#####################################################################################
+#   M A I N 
+#####################################################################################
+
+if __name__ == "__main__":
+    class runTimeConfigObject(object):
+        pass
+
+    runTimeConfig = runTimeConfigObject()
+    runTimeConfigObject.debugRealTime = 0       # 1 = Show debug realtime interrupt data
+    runTimeConfigObject.executeSilently = 0     # 1 = Execute silently (no sceen output)
+    runTimeConfigObject.NumInterrupts = 0       # keep Nbr of sensor interrupts withi the main loop
+    
+    main(sys.argv[1:])
+    MMA8451 = Accel()
+    #os.system("clear")
+    MMA8451.init()
+
+    if MMA8451.whoAmI() != deviceName:
+        print("Error! Device not recognized! (" + str(deviceName) + ")")
+        sys.exit()
+
+    while True:  # forever loop
+        #print "runTimeConfigObject.executeSilently = " + str(runTimeConfigObject.executeSilently)
+        if runTimeConfigObject.executeSilently == 0:
+            print ("\nCurrent Date-Time: " + str(datetime.datetime.now()))
+            print ("Raspberry Bus       = " + str(MMA8451.raspiBus))
+            print ("Raspberry Interrupt = " + str(MMA8451.raspiIntEnabled))
+            print ("Number of elemets   = " + str(len(accelBuffer)))
+            MMA8451.debugShowRpiInfo()
+            MMA8451.debugShowRegisters()
+            MMA8451.debugShowOrientation()
+            axes = MMA8451.getAxisValue()
+            MMA8451.debugShowAxisAcceleration(axes['x'], axes['y'], axes['z'])
+            #
+            if runTimeConfigObject.debugRealTime != 0:
+                MMA8451.debugRealTimeBuffer()
+
+        runTimeConfigObject.NumInterrupts = 0
+        try:
+            time.sleep(1.0)
+        except KeyboardInterrupt:
+            print("\nUser termination requested!\n")
+            sys.exit()
+
     sys.exit()
+
