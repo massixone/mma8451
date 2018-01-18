@@ -10,6 +10,8 @@
 #
 # 2017-01-03	Massimo Di Primio		0.05		Added Interrut handler
 #
+# 2018-01-10    Massimo Di Primio       0.06        Added config file parser
+
 """Simple code example for Adafruit MMA8452 3-axis Accelerometer
 
 This experimental code is intended for measuring gravity acceleration trough Adafruit(c) MMA8451, connected
@@ -340,13 +342,8 @@ class Accel():
     raspiBus = -1               # The Raspberry Pi Bus (dpends on hardware model)
     raspiIntEnabled = 0         # 0 = Interrupt routine was not enabled after initialization, 1 = Interrupt routine enabled successfully
     raspiInfo = ""              # Raspberry Pi Info
-#    confCity = ""
-#    confLatitude = ""
-#    confLongitude = ""
-#    confDeviceName = ""
-#    confSensorName = ""
-    dict1 = {}
-    sections = {'GeoInfo', 'DeviceInfo'}    
+    configSections = {}
+    sections = {'GeoInfo', 'DeviceInfo', 'Networking'}    
 
     def __init__(self):
         #
@@ -362,9 +359,9 @@ class Accel():
                 sys.exit()
             for option in options:
                 try:
-                    self.dict1[option] = Config.get("GeoInfo", option)             
+                    self.configSections[option] = Config.get("GeoInfo", option)             
                 except:
-                    self.dict1[option] = None
+                    self.configSections[option] = None
 
         #
         # Setup RPI correct bus
@@ -556,31 +553,9 @@ class Accel():
             print("Program Termination Requested")
             sys.exit()
         
-#CONFIG_SECTION_GEOINFO = "GeoInfo"
-#CONFIG_SECTION_DEVICE_INFO = "DeviceInfo"
-#class configRSS
-#
-#    confCity = ""
-#    confLatitude = ""
-#    confLongitude = ""
-#    confDeviceName = ""
-#    confSensorName = ""
-#
-#
-#    def __init__(self):
-#        myBus = ""
-#        if GPIO.RPI_INFO['P1_REVISION'] == 1:
-#            myBus = 0
-#        else:
-#            myBus = 1
-#        #print('myBus=' + str(myBus))
-#        self.raspiBus = myBus
-#
-#    def loadConfig(section)
-#        dict1 = {}
-#        options = Config.options(section)
-#
-
+###############################################################################
+#   Useful functions
+###############################################################################
 def printHelp():
     print ("\n")
     print ("usage: accel.py [options]")
@@ -594,7 +569,6 @@ def main(argv):
     import sys, getopt
     #
     try:
-        #opts, args = getopt.getopt(argv,"hc:dsS",["conf_file="])
         opts, args = getopt.getopt(argv,"hds")
     except getopt.GetoptError:
         print ("\nInvalid option requested on command line")

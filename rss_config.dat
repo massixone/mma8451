@@ -2,8 +2,16 @@
 CityName: Rome
 Latitude: 41.947550
 Longitude: 12.469794
+#DeviceOrientation:  L      # Reserved for future use
 
 [DeviceInfo]
 DeviceType: raspberry
 DeviceName: rssd0001
 SensorName: mma8451
+
+[Networking]
+RssServerAddress: 192.168.0.200
+RssServerProtocol: tcp
+RssServerTcpPort: 15000
+RssServerHearthBit: 10
+
