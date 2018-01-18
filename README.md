@@ -78,7 +78,7 @@ When the startup procedure is completed you can begin configure you RPi as descr
 
 * Install the following packages via shell command and reboot you RPi
     ```
-    sudo apt-get install python-smbus
+    sudo apt-get install build-essential python-dev python-smbus python-pip git
     sudo apt-get install i2c-tools
     sudo reboot
     ```
@@ -103,6 +103,7 @@ The above can be achieved by manually setting the requirements via shell command
     ```
     sudo chmod 666 /sys/module/i2c_bcm2708/parameters/combined
     sudo echo -n 1 > /sys/module/i2c_bcm2708/parameters/combined
+    modprobe i2c_bcm2708
     ```
     
 Or by adding the following chunk of code to the file ```/etc/rc.local```
