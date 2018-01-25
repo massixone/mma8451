@@ -1,17 +1,18 @@
 [GeoData]
-CityName: Rome
-Latitude: 41.947550
-Longitude: 12.469794
-#DeviceOrientation:  L      # Reserved for future use
+cityname: Rome
+latitude: 41.947550
+longitude: 12.469794
+deviceorientation:  L
 
 [DeviceInfo]
-DeviceType: raspberry
-DeviceName: rssd0001
-SensorName: mma8451
+devicetype: raspberry
+devicename: rssd0001
+sensorname: mma8451
+logfile: './rssd.log'
 
 [Networking]
-RssServerAddress: 192.168.0.200
-RssServerProtocol: tcp
-RssServerTcpPort: 15000
-RssServerHearthBit: 10
-
+serveraddress: www.diprimio.com
+serverprotocol: tcp
+servertcpport: 15000
+serverhearthbit: 10
+receivebuffersize: 1024

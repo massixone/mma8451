@@ -305,7 +305,9 @@ FLAG_TRANSIENT_SCR_XTR_POL = 0x01  # Polarity of X Transient Event that triggere
 #   3.  yAccel      Current Y acceleration value in row format
 #   4.  xAccel      Current Z acceleration value in row format
 #   5.  plo         Current Portrait/Landscape orientation
-accelBuffer = [0, 0, 0, 0, 0]
+#accelBuffer = [0, 0, 0, 0, 0]
+accelBuffer = []
+#accelBuffer.append([0, 0, 0, 0, 0])
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Define the threaded interrupt vector
@@ -542,7 +544,7 @@ class Accel():
 ###############################################################################
 #def rssClient():
 #    """Manage data shipping over th network, in a separate thread."""
-#    #logging.debug('Thread Starting')
+#    #logger.debug('Thread Starting')
 #    while True:
 #        time.sleep(1.0)
 #        print ("This is thread rssClient()")
@@ -554,16 +556,18 @@ def printHelp():
     print ("\n")
     print ("usage: accel.py [options]")
     print ("Available options:")
-    print (" -h \t Print this help and exit")
-    print (" -d \t Show debug realtime interrupt data")
-    print (" -s \t Execute silently (no screen output)")
+    print (" -h \t\t Print this help and exit")
+    print (" -d \t\t Show debug realtime interrupt data")
+    print (" -s \t\t Execute silently (no screen output)")
+    print (" -L <lvl>\t Set Log level. where <lvl> is the log level (0 = NONE - 8 = DEBUG)") 
     print ("")
 
+
 def main(argv):
-    import sys, getopt
+    import sys, getopt, logging
     #
     try:
-        opts, args = getopt.getopt(argv,"hds")
+        opts, args = getopt.getopt(argv,"hdsL:")
     except getopt.GetoptError:
         print ("\nInvalid option requested on command line")
         printHelp()
@@ -573,10 +577,25 @@ def main(argv):
         if opt == '-h':
             printHelp()
             sys.exit()
-        if opt == '-d':
+        elif opt == '-d':
             runTimeConfigObject.debugRealTime = 1
-        if opt == '-s':
+        elif opt == '-s':
             runTimeConfigObject.executeSilently = 1
+        elif opt == '-L':
+            if (int(arg) == 0) or (int(arg) > 5):
+                pass
+                #logger.setLevel(logger.NOTSET)            # Same as value 0
+            elif int(arg) == 1:
+                logger.setLevel(logging.CRITICAL)          # Same as value 50
+            elif int(arg) == 2:
+                logger.setLevel(logging.ERROR)             # Same as value 40
+            elif int(arg) == 3:
+                logger.setLevel(logging.WARNING)           # Same as value 30
+            elif int(arg) == 4:
+                logger.setLevel(logging.INFO)              # Same as value 20
+            elif int(arg) == 5:
+                logger.setLevel(logging.DEBUG)             # Same as value 10
+
 
 #####################################################################################
 #   M A I N 
@@ -587,7 +606,25 @@ if __name__ == "__main__":
         pass
 
     #
+    # Setup Logger
+    #
+    #logger = logging.basicConfig(level=logging.DEBUG, format='[%(asctime)15s].%(levelname)s] (%(threadName)-10s) %(message)s', )
+    #logger.basicConfig(level=logging.DEBUG,format='[%(asctime)15s].%(levelname)s] (%(threadName)-10s) %(message)s',)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    # create formatter
+    formatter = logging.Formatter('[%(asctime)s.%(levelname)s] (%(name)s.%(threadName)-10s) : %(message)s')
+    # add formatter to ch
+    ch.setFormatter(formatter)
+    # add ch to logger
+    logger.addHandler(ch)
+
+    #
     # Set some default command line options
+    #
     runTimeConfig = runTimeConfigObject()
     runTimeConfigObject.debugRealTime = 0       # 1 = Show debug realtime interrupt data
     runTimeConfigObject.executeSilently = 0     # 1 = Execute silently (no sceen output)
@@ -599,8 +636,9 @@ if __name__ == "__main__":
     # Read configuration file
     #
     configFile = "./rss_config.dat"
+    logger.debug('Reading Config file: ' + configFile)
     sections = {'GeoData', 'DeviceInfo', 'Networking'}
-    configSections = {}
+    configParameters = {}
     Config = ConfigParser.ConfigParser()
     Config.read(configFile)
     for section in sections:
@@ -611,9 +649,10 @@ if __name__ == "__main__":
             sys.exit()
         for option in options:
             try:
-                configSections[option] = Config.get(section, option)
+                configParameters[option] = Config.get(section, option)
             except:
-                configSections[option] = None
+                configParameters[option] = None
+            logger.debug("Config Section: " + section + " / Option: " + option + " => " + configParameters[option])
 
     MMA8451 = Accel()
     #os.system("clear")
@@ -626,16 +665,15 @@ if __name__ == "__main__":
     #
     # Thread client start
     #
-    #import threading
     import rss_client
-    #threadClient = threading.Thread(name='netClientWorker', target=rss_client.cliWorker)
     pill2kill = threading.Event()
-    threadClient = threading.Thread(name='netClientWorker', target=rss_client.cliWorker, args=(pill2kill, accelBuffer))
+    threadClient = threading.Thread(name='netClientWorker', target=rss_client.cli_worker, args=(pill2kill, configParameters, accelBuffer))
     threadClient.setDaemon(False)         #threadClient.daemon = False
     threadClient.start()
+    myThread = []
+    myThread.append('netClientWorker')
 
     while True:  # forever loop
-        #print "runTimeConfigObject.executeSilently = " + str(runTimeConfigObject.executeSilently)
         if runTimeConfigObject.executeSilently == 0:
             print ("\nCurrent Date-Time: " + str(datetime.datetime.now()))
             print ("Raspberry Bus       = " + str(MMA8451.raspiBus))
@@ -654,11 +692,12 @@ if __name__ == "__main__":
         try:
             time.sleep(1.0)
         except KeyboardInterrupt:
-            print ("Killing threads...")
+            logger.debug ("Killing threads...")
             pill2kill.set()
             threadClient.join()
+            time.sleep(1.0)
 
-            print("\nUser termination requested!\n")
+            logger.debug("\nUser termination requested!\n")
             sys.exit()
 
     sys.exit()
