@@ -409,6 +409,9 @@ class Accel():
             GPIO.add_event_detect(17, GPIO.FALLING, callback=my_callback)
             #print("Interrupt OK")
             self.raspiIntEnabled = 1    # Interrupt enabled successfully
+            # Force 1st sensor read
+            my_callback(0)
+
 
             # Configure register for interrupt
             self.writeRegister(REG_CTRL_REG4, 0x00)  # Reset all interrupt enabled flags

@@ -54,6 +54,7 @@ def cli_worker(stopEvent, config, accelBuffer):
     send_client_hello(s)
 
     ts = int(time.time())
+    te = ts
     while not stopEvent.wait(0.3):
         if len(accelBuffer) > 0:
             send_accel_data(s, accelBuffer)
@@ -71,7 +72,8 @@ def cli_worker(stopEvent, config, accelBuffer):
 def send_accel_data(s, accelBuffer):
     """Send acceleration data to the server"""
     pbuf = parse_accel_data(accelBuffer)
-    if len(pbuf) > 0:
+    # if len(pbuf) > 0: # this sometimes returns error (when buf is empty, it has None type)
+    if (pbuf is not None) and (len(pbuf) > 0):
         str = climsg.accel_data_message(pbuf)
         try:
             s.sendall(json.dumps(str) + "\n")
@@ -95,8 +97,12 @@ def send_zap_message(s):
         logging.debug("Failed to send Zap to the server")
 
 
-def send_config_affirm_message(data):
-    pass
+def send_config_affirm_message(s, config):
+    """Send client configuration to server"""
+    try:
+        s.sendall(json.dumps(climsg.config_affirm_message(config)) + "\n")
+    except:
+        logging.debug("Failed to send client configuration to the server")
 
 
 def send_client_heartbit(s):
