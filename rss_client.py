@@ -14,15 +14,18 @@
 
 import logging
 import time
-import socket
 import datetime
+import socket
 import json
 import rss_client_messages as climsg
+import rss_cli_config as ccfg
+import raspidata
 
 
-def cli_connect(params):
+#def cli_connect(params):
+def cli_connect():
     """Open connection to the server"""
-    server_address = (str(params['serveraddress']), int(params['servertcpport']))
+    server_address = (str(ccfg.serveraddress), int(ccfg.servertcpport))
     logging.debug('Trying to connect to server ' + str(server_address))
     # Create a TCP/IP socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -32,12 +35,11 @@ def cli_connect(params):
         logging.debug('Connection Established to server ' + str(server_address))
     except:
         logging.debug(
-            "Failed to open connection: " + str(params['serverprotocol']) +
-            ", to IP: " + str(params['serveraddress']) + 
-            ", on port: " + str(params['servertcpport'])
+            "Failed to open connection: " + str(ccfg.serverprotocol) +
+            ", to IP: " + str(ccfg.serveraddress) +
+            ", on port: " + str(ccfg.servertcpport)
             )
         return(-1)
-
     return(s)
 
 
@@ -47,11 +49,14 @@ def cli_close(s):
         s.close()
 
 
-def cli_worker(stopEvent, config, accelBuffer):
+# def cli_worker(stopEvent, config, accelBuffer):
+def cli_worker(stopEvent, accelBuffer):
     """A client worker as thread"""
     logging.debug('Thread Starting')
-    s = cli_connect(config)
+    s = cli_connect()     # s = cli_connect(config)
     send_client_hello(s)
+    time.sleep(0.5)
+    send_config_affirm_message(s)
 
     ts = int(time.time())
     te = ts
@@ -71,46 +76,58 @@ def cli_worker(stopEvent, config, accelBuffer):
     
 def send_accel_data(s, accelBuffer):
     """Send acceleration data to the server"""
+    #msg = dict(cmd='ADM', timestamp=str(datetime.datetime.now()), clid=raspidata.get_serial())
+    #a = 123 #str(datetime.datetime.now())
     pbuf = parse_accel_data(accelBuffer)
+    msg = dict(cmd = 'ADM', timestamp = str(datetime.datetime.now()), clid = raspidata.get_serial(), data = pbuf)
     # if len(pbuf) > 0: # this sometimes returns error (when buf is empty, it has None type)
     if (pbuf is not None) and (len(pbuf) > 0):
-        str = climsg.accel_data_message(pbuf)
+        #str = climsg.accel_data_message(pbuf)
         try:
-            s.sendall(json.dumps(str) + "\n")
+            logging.debug("Sending Acceleration data to the server")
+            s.sendall(str(json.dumps(msg)) + "\n")  #s.sendall(json.dumps(str) + "\n")
         except:
             logging.debug("Failed to send Acceleration-Data to the server")
 
 
 def send_client_hello(s):
     """Send Hello message to the server"""
+    msg = dict(cmd = 'CHM', timestamp = str(datetime.datetime.now()), clid = raspidata.get_serial())
     try:
-        s.sendall(json.dumps(climsg.hello_message()) + "\n")
+        logging.debug("Sending Hello to the server")
+        s.sendall(str(json.dumps(msg)) + "\n")  #s.sendall(json.dumps(climsg.hello_message()) + "\n")
     except:
         logging.debug("Failed to send Hello to the server")
 
 
 def send_zap_message(s):
     """Send Zap message to the server"""
+    msg = dict(cmd = 'CZM', timestamp = str(datetime.datetime.now()), clid = raspidata.get_serial())
     try:
-        s.sendall(json.dumps(climsg.zap_message()) + "\n")
+        logging.debug("Sending Zap to the server")
+        s.sendall(str(json.dumps(msg)) + "\n")  #s.sendall(json.dumps(climsg.zap_message()) + "\n")
     except:
         logging.debug("Failed to send Zap to the server")
 
 
-def send_config_affirm_message(s, config):
-    """Send client configuration to server"""
+def send_config_affirm_message(s):      #def send_config_affirm_message(s, config):
+    msg_data = dict(city = ccfg.cityname, latitude = ccfg.latitude,longitude = ccfg.longitude)
+    msg = dict(cmd = 'CCA', timestamp = str(datetime.datetime.now()), clid = raspidata.get_serial(), config = msg_data)
     try:
-        s.sendall(json.dumps(climsg.config_affirm_message(config)) + "\n")
+        logging.debug("Sending client configuration to the server")
+        s.sendall(str(json.dumps(msg)) + "\n")    #s.sendall(climsg.config_affirm_message(cfg_data))
     except:
         logging.debug("Failed to send client configuration to the server")
 
 
 def send_client_heartbit(s):
     """Send Heartbit to the server"""
+    msg = dict(cmd = 'CHB', timestamp = str(datetime.datetime.now()), clid=raspidata.get_serial())
     try:
-        s.sendall(json.dumps(climsg.heart_bit()) + "\n")
+        logging.debug("Sending Heartbit to the server")
+        s.sendall(str(json.dumps(msg)) + "\n")  #s.sendall(json.dumps(climsg.heart_bit()) + "\n")
     except:
-        logging.debug("Failed to send heartbit to the server")
+        logging.debug("Failed to send Heartbit to the server")
 
 
 def parse_accel_data(b):

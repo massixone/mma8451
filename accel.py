@@ -29,6 +29,7 @@ import sys
 import logging
 import threading
 import RPi.GPIO as GPIO
+import rss_cli_config as clicfg
 from collections import deque
 
 __author__ = "Massimo Di Primio"
@@ -92,10 +93,10 @@ REG_CTRL_REG3 = 0x2C  # Read/Write
 REG_CTRL_REG4 = 0x2D  # Read/Write
 REG_CTRL_REG5 = 0x2E  # Read/Write
 
-REDUCED_NOIDE_MODE = 0
+REDUCED_NOISE_MODE = 0
 OVERSAMPLING_MODE = 1
 HIGH_RES_MODE = {
-    REDUCED_NOIDE_MODE: [REG_CTRL_REG1, 0x4],
+    REDUCED_NOISE_MODE: [REG_CTRL_REG1, 0x4],
     OVERSAMPLING_MODE: [REG_CTRL_REG2, 0x2],
 }
 
@@ -269,10 +270,10 @@ FLAG_PL_CFG_PL_EN = 0x40  # Portrait/Landscape Detection Enable (0: P/L Detectio
 # +--------------+--------------+--------------+--------------+--------------+--------------+--------------+--------------+
 # |      -       |      -       |      -       |     ELE      |   ZTEFE      |   YTEFE      |   XTEFE      |  HPF_BYP     |
 # +--------------+--------------+--------------+--------------+--------------+--------------+--------------+--------------+
-FLAG_TRANSIENT_CFG_ELE = 0x10  # Transient event flags (0: Event flag latch disabled; 1: Event flag latch enabled)
-FLAG_TRANSIENT_CFG_ZTEFE = 0x08  # Event flag enable on Z (0: Event detection disabled; 1: Raise event flag)
-FLAG_TRANSIENT_CFG_YTEFE = 0x04  # Event flag enable on Y (0: Event detection disabled; 1: Raise event flag)
-FLAG_TRANSIENT_CFG_XTEFE = 0x02  # Event flag enable on X (0: Event detection disabled; 1: Raise event flag)
+FLAG_TRANSIENT_CFG_ELE = 0x10      # Transient event flags (0: Event flag latch disabled; 1: Event flag latch enabled)
+FLAG_TRANSIENT_CFG_ZTEFE = 0x08    # Event flag enable on Z (0: Event detection disabled; 1: Raise event flag)
+FLAG_TRANSIENT_CFG_YTEFE = 0x04    # Event flag enable on Y (0: Event detection disabled; 1: Raise event flag)
+FLAG_TRANSIENT_CFG_XTEFE = 0x02    # Event flag enable on X (0: Event detection disabled; 1: Raise event flag)
 FLAG_TRANSIENT_CFG_HPF_BYP = 0x01  # Bypass High-Pass filter/Motion Detection
 
 # Register TRANSIENT_SCR (0x01e) R/O - TRANSIENT_SRC Register
@@ -281,13 +282,20 @@ FLAG_TRANSIENT_CFG_HPF_BYP = 0x01  # Bypass High-Pass filter/Motion Detection
 # +--------------+--------------+--------------+--------------+--------------+--------------+--------------+--------------+
 # |       -      |      EA      |   ZTRANSE    | Z_Trans_Pol  |   YTRANSE    | Y_Trans_Pol  |   XTRANSE    | X_Trans_Pol  |
 # +--------------+--------------+--------------+--------------+--------------+--------------+--------------+--------------+
-FLAG_TRANSIENT_SCR_EA = 0x40  # Event Active Flag (0: no event flag has been asserted; 1: one or more event flag has been asserted)
+FLAG_TRANSIENT_SCR_EA = 0x40       # Event Active Flag (0: no event flag has been asserted; 1: one or more event flag has been asserted)
 FLAG_TRANSIENT_SCR_ZTRANSE = 0x20  # Z transient event (0: no interrupt, 1: Z Transient acceleration > than TRANSIENT_THS event has occurred
 FLAG_TRANSIENT_SCR_ZTR_POL = 0x10  # Polarity of Z Transient Event that triggered interrupt (0: Z event Positive g, 1: Z event Negative g)
 FLAG_TRANSIENT_SCR_YTRANSE = 0x08  # Y transient event (0: no interrupt, 1: Y Transient acceleration > than TRANSIENT_THS event has occurred
 FLAG_TRANSIENT_SCR_YTR_POL = 0x04  # Polarity of Y Transient Event that triggered interrupt (0: Y event Positive g, 1: Y event Negative g)
 FLAG_TRANSIENT_SCR_XTRANSE = 0x02  # X transient event (0: no interrupt, 1: X Transient acceleration > than TRANSIENT_THS event has occurred
 FLAG_TRANSIENT_SCR_XTR_POL = 0x01  # Polarity of X Transient Event that triggered interrupt (0: X event Positive g, 1: X event Negative g)
+
+# Register FF_MT_THS (0x017) R/W - Freefall and Motion Threshold Register
+# +--------------+--------------+--------------+--------------+--------------+--------------+--------------+--------------+
+# |   Bit 7      |   Bit 6      |  Bit 5       |  Bit 4       |   Bit 3      |  Bit 2       |  Bit 1       |  Bit 0       |
+# +--------------+--------------+--------------+--------------+--------------+--------------+--------------+--------------+
+# |   DBCNTM     |     THS6     |    THS5      |    THS4      |    THS3      |    THS2      |    THS1      |    THS0      |
+# +--------------+--------------+--------------+--------------+--------------+--------------+--------------+--------------+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Define SOME GLOBAL VARIABLES
@@ -641,21 +649,21 @@ if __name__ == "__main__":
     configFile = "./rss_config.dat"
     logger.debug('Reading Config file: ' + configFile)
     sections = {'GeoData', 'DeviceInfo', 'Networking'}
-    configParameters = {}
-    Config = ConfigParser.ConfigParser()
-    Config.read(configFile)
-    for section in sections:
-        try:
-            options = Config.options(section)
-        except:
-            print ("ERROR: Section '" + section + "' Not found in config file: '" + configFile + "'.")
-            sys.exit()
-        for option in options:
-            try:
-                configParameters[option] = Config.get(section, option)
-            except:
-                configParameters[option] = None
-            logger.debug("Config Section: " + section + " / Option: " + option + " => " + configParameters[option])
+    #configParameters = {}
+    #Config = ConfigParser.ConfigParser()
+    #Config.read(configFile)
+    #for section in sections:
+    #    try:
+    #        options = Config.options(section)
+    #    except:
+    #        print ("ERROR: Section '" + section + "' Not found in config file: '" + configFile + "'.")
+    #        sys.exit()
+    #    for option in options:
+    #        try:
+    #            configParameters[option] = Config.get(section, option)
+    #        except:
+    #            configParameters[option] = None
+    #        logger.debug("Config Section: " + section + " / Option: " + option + " => " + configParameters[option])
 
     MMA8451 = Accel()
     #os.system("clear")
@@ -670,7 +678,8 @@ if __name__ == "__main__":
     #
     import rss_client
     pill2kill = threading.Event()
-    threadClient = threading.Thread(name='netClientWorker', target=rss_client.cli_worker, args=(pill2kill, configParameters, accelBuffer))
+    #threadClient = threading.Thread(name='netClientWorker', target=rss_client.cli_worker, args=(pill2kill, configParameters, accelBuffer))
+    threadClient = threading.Thread(name='netClientWorker', target=rss_client.cli_worker, args=(pill2kill, accelBuffer))
     threadClient.setDaemon(False)         #threadClient.daemon = False
     threadClient.start()
     myThread = []
