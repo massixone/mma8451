@@ -11,7 +11,7 @@ A brief guide on How to Configure Your Pi for I2C
 2. http://www.nxp.com/doc/MMA8451Q
 The MMA8451 Data sheet: Technical data
 
-3. http://www.nxp.com/files/sensors/doc/app_note/AN4076.pdf
+3. https://www.nxp.com/docs/en/application-note/AN4076.pdf
 Data Manipulation and Basic Settings of the MMA8451, 2, 3Q
 
 # Initial Preparation
